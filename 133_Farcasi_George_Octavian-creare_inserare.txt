@@ -1,0 +1,1998 @@
+create  sequence seq_id_pt_toate
+start with 1
+maxvalue 10000
+nocycle
+nocache;
+
+
+
+
+
+
+create table Regizori(
+	regizor_id number(5) constraint pk_regizor primary key,
+	nume_regizor varchar2(30) constraint null_nume_regizor not null,
+	prenume_regizor varchar2(30) constraint null_prenume_regizor not null
+);
+
+create table Filme(
+	film_id number(5) constraint pk_film primary key,
+	nume_film varchar2(30) constraint null_nume_film not null,
+    regizor_id number(5) constraint null_regizor_filme not null,
+	rating number(2) constraint null_rating_film not null,
+    gen varchar2(10) constraint null_gen_film not null,
+    data_lansare date constraint null_data_film not null,
+    durata number(3) constraint null_durata_film not null,
+    constraint fk_regizor_filme foreign key (regizor_id) references regizori(regizor_id) on delete cascade,
+    constraint check_rating_film check(1<=rating and rating<=10),
+    constraint check_gen_film check(lower(gen) in ('actiune','drama','horror','thriller','comedie','aventura','romantic','mister'))
+);
+
+create table Clienti(
+	client_id number(5) constraint pk_client primary key,
+	nume_client varchar2(30) constraint null_nume_client not null,
+    prenume_client varchar2(40),
+    telefon varchar2(20) constraint unq_telefon_client unique,
+    email varchar2(30) constraint null_email_client not null,
+    constraint unq_email_client unique(email) 
+);   
+
+create table Snacks_uri(
+	snack_id number(5) constraint pk_snack primary key,
+	nume_snack varchar2(30) constraint null_nume_snack not null,
+	pret number(4,2) constraint null_pret_snack not null,
+    constraint check_pret_snack check(pret>=0 and pret<=60)
+);
+
+create table Tranzactii(
+    client_id number(5) constraint fk_client_tranzactii references clienti(client_id) on delete cascade,
+	snack_id number(5) constraint fk_snack_tranzactii references snacks_uri(snack_id) on delete cascade,
+	data date default sysdate,
+    constraint pk_tranzactie primary key(client_id,snack_id) );
+
+create table Sectiuni_lucru(
+    sectiune_id number(5) constraint pk_sectiune primary key,
+    nume_sectiune varchar2(30) constraint null_nume_sectiuni not null,
+    constraint unq_nume_sectiune unique(nume_sectiune)
+);
+
+create table Locatii(
+	locatie_id number(5) constraint pk_locatie primary key,
+	strada varchar2(30) constraint null_strada_locatie not null,
+    localitate varchar2(30) constraint null_localitate_locatie not null,
+    judet varchar2(30) constraint null_judet_locatie not null,
+    constraint unq_StrLocJud unique(strada,localitate,judet)
+);
+
+
+create table Cinematografe(
+    cinematograf_id number(5) constraint pk_cinematograf primary key,
+    locatie_id number(5) constraint null_locatie_cinematografe not null,
+	numar_sali number(2) constraint null_numar_sali not null,
+    constraint fk_locatie_cinematografe foreign key (locatie_id) references locatii(locatie_id) on delete cascade,
+    constraint check_nrsali_cinematograf check(numar_sali>=1) );  
+
+create table Ture_angajati(
+	tura_id number(5) constraint pk_tura primary key,
+	cinematograf_id number(5) constraint null_cinematograf_ture not null,
+    ora_incepere varchar2(30) default to_char(sysdate,'hh24:mi'),
+    durata number(1) constraint null_durata_ture not null,
+    constraint fk_cinematograf_ture foreign key (cinematograf_id) references cinematografe(cinematograf_id) on delete cascade,
+    constraint check_durata_ture check(durata in (4,5,6,7,8))
+);
+
+
+
+create table Angajati(
+	angajat_id number(5) constraint pk_angajat primary key,
+    sectiune_id number(5) constraint null_sectiune_angajati not null,
+    tura_id number(5) constraint null_tura_angajati not null,
+    nume_angajat varchar2(30) constraint null_nume_angajati not null,
+    prenume_angajat varchar2(40) constraint null_prenume_angajati not null,
+    salariu number(6,2) constraint null_salariu_angajati not null,
+    telefon varchar2(20) constraint null_telefon_angajati not null,
+    constraint fk_sectiune_angajati foreign key (sectiune_id) references sectiuni_lucru(sectiune_id) on delete cascade,
+    constraint fk_tura_angajati foreign key (tura_id) references ture_angajati(tura_id) on delete cascade,
+    constraint check_salariu_angajati check(1500<=salariu and salariu<=3000),
+    constraint unq_telefon_angajati unique(telefon)
+);
+
+create table Sali_cinematograf(
+    sala_id number(5) constraint pk_sala primary key,
+    cinematograf_id number(5) constraint null_cinematograf_sali not null,
+	capacitate number(3) constraint null_capacitate_sali not null,
+    constraint fk_cinematograf_sali foreign key (cinematograf_id) references cinematografe(cinematograf_id) on delete cascade,
+    constraint check_capacitate_sali check(1<=capacitate and capacitate<=150)
+); 
+
+create table Transmiteri(
+    transmitere_id number(5) constraint pk_transmitere primary key,
+    film_id number(5) constraint null_film_transmiteri not null,
+	sala_id number(5) constraint null_sala_transmiteri not null,
+    data_ora_incepere varchar2(50) default to_char(sysdate,'dd-mm-yyyy, hh24:mi'),
+    pret number(5,2) constraint null_pret_transmiteri not null,
+    constraint fk_film_transmiteri foreign key (film_id) references filme(film_id) on delete cascade,
+    constraint fk_sala_transmiteri foreign key (sala_id) references sali_cinematograf(sala_id) on delete cascade,
+    constraint check_pret_transmiteri check(0<=pret and pret<=100),
+    constraint unq_film_sala_data unique(film_id,sala_id, data_ora_incepere)
+);     
+
+create table Locuri_sala(
+    loc_id number(5) constraint pk_loc primary key,
+    sala_id number(5) constraint null_sala_locuri not null,
+	litera_rand varchar2(1) constraint null_litera_locuri not null,
+    numar_loc number(3) constraint null_numar_locuri not null,
+    constraint fk_sala_locuri foreign key (sala_id) references sali_cinematograf(sala_id) on delete cascade,
+    constraint unq_sala_litera_numar unique(sala_id,litera_rand,numar_loc)
+); 
+
+create table Bilete(
+    bilet_id number(5) constraint pk_bilet primary key,
+    loc_id number(5) constraint null_loc_bilete not null,
+    constraint fk_loc_bilete foreign key (loc_id) references locuri_sala(loc_id) on delete cascade,
+    constraint unq_loc_bilete unique(loc_id)
+);
+
+
+create table Rezervari(
+    client_id number(5) constraint fk_client_rezervari references clienti(client_id) on delete cascade,
+	transmitere_id number(5) constraint fk_transmitere_rezervari references transmiteri(transmitere_id) on delete cascade,
+    bilet_id number(5) constraint fk_bilet_rezervari references bilete(bilet_id) on delete cascade,
+    constraint pk_rezervare primary key(client_id,transmitere_id,bilet_id),
+    constraint unq_transmitere_bilet unique(transmitere_id,bilet_id)
+);
+
+
+
+
+
+
+
+
+
+insert into regizori
+values(seq_id_pt_toate.nextval,'Kosinski', 'Joseph');
+
+insert into regizori
+values(seq_id_pt_toate.nextval,'Harron', 'Mary');
+
+insert into regizori
+values(seq_id_pt_toate.nextval,'Shadyac', 'Tom');
+
+insert into regizori
+values(seq_id_pt_toate.nextval,'Stahelski', 'Chad');
+
+insert into regizori
+values(seq_id_pt_toate.nextval,'Wachowsky', 'Lana');
+
+insert into regizori
+values(seq_id_pt_toate.nextval,'Cretton', 'Destin');
+
+insert into regizori
+values(seq_id_pt_toate.nextval,'Cunningham', 'Sean');
+
+insert into regizori
+values(seq_id_pt_toate.nextval,'Nolan', 'Christopher');
+
+insert into regizori
+values(seq_id_pt_toate.nextval,'Bier', 'Susanne');
+
+insert into regizori
+values(seq_id_pt_toate.nextval,'Krasinski', 'John');
+
+insert into regizori
+values(seq_id_pt_toate.nextval,'Russo', 'Anthony');
+
+insert into regizori
+values(seq_id_pt_toate.nextval,'Watts', 'Jon');
+
+
+
+alter sequence seq_id_pt_toate restart;
+
+
+insert into filme
+values(seq_id_pt_toate.nextval,'The Dark Knight',8,9,'actiune',to_date('25-07-2008', 'dd-mm-yyyy'),152);
+
+insert into filme
+values(seq_id_pt_toate.nextval,'Interstellar',8,9,'aventura',to_date('07-11-2014', 'dd-mm-yyyy'),169);
+
+insert into filme
+values(seq_id_pt_toate.nextval,'Top Gun: Maverick',1,8,'actiune',to_date('27-05-2022', 'dd-mm-yyyy'),131);
+
+insert into filme
+values(seq_id_pt_toate.nextval,'American Psycho',2,8,'drama',to_date('14-04-2000', 'dd-mm-yyyy'),102);
+
+insert into filme
+values(seq_id_pt_toate.nextval,'Ace Ventura: Pet Detective',3,7,'comedie',to_date('04-02-1994', 'dd-mm-yyyy'),86);
+
+insert into filme
+values(seq_id_pt_toate.nextval,'John Wick',4,8,'actiune',to_date('31-10-2014', 'dd-mm-yyyy'),101);
+
+insert into filme
+values(seq_id_pt_toate.nextval,'The Matrix',5,9,'actiune',to_date('31-03-1999', 'dd-mm-yyyy'),136);
+
+insert into filme
+values(seq_id_pt_toate.nextval,'Shang-Chi',6,7,'actiune',to_date('02-09-2021', 'dd-mm-yyyy'),132);
+
+insert into filme
+values(seq_id_pt_toate.nextval,'Friday the 13th',7,6,'horror',to_date('09-05-1980', 'dd-mm-yyyy'),95);
+
+insert into filme
+values(seq_id_pt_toate.nextval,'Bird Box',9,7,'horror',to_date('14-12-2018', 'dd-mm-yyyy'),124);
+
+insert into filme
+values(seq_id_pt_toate.nextval,'A Quiet Place Part II',10,7,'horror',to_date('28-05-2021', 'dd-mm-yyyy'),107);
+
+insert into filme
+values(seq_id_pt_toate.nextval,'Avengers Endgame',11,9,'actiune',to_date('26-04-2019', 'dd-mm-yyyy'),182);
+
+insert into filme
+values(seq_id_pt_toate.nextval,'Spider-Man: No Way Home',12,8,'actiune',to_date('17-12-2021', 'dd-mm-yyyy'),148);
+
+
+
+alter sequence seq_id_pt_toate restart;
+
+
+
+insert into clienti
+values(seq_id_pt_toate.nextval,'Anghel','Robert','7013.994.277','anghelrobert@gmail.com');
+
+insert into clienti
+values(seq_id_pt_toate.nextval,'Serban','Cezar','9774.857.343','serbancezar@gmail.com');
+
+insert into clienti
+values(seq_id_pt_toate.nextval,'Ionescu','Ion','8183.292.531','ionescuion@gmail.com');
+
+insert into clienti
+values(seq_id_pt_toate.nextval,'Stoica','Andreea','2235.414.416','stoicaandreea@gmail.com');
+
+insert into clienti
+values(seq_id_pt_toate.nextval,'Ionescu','Medeea','1481.482.726','ionescumedeea@gmail.com');
+
+insert into clienti
+values(seq_id_pt_toate.nextval,'Sovei','Catalin','4843.349.707','sovei24catalin@gmail.com');
+
+insert into clienti
+values(seq_id_pt_toate.nextval,'Farcasi','Alexia','9522.866.886','farcasialexia@gmail.com');
+
+insert into clienti
+values(seq_id_pt_toate.nextval,'Serban','Violeta','7624.823.234','serbanvioleta@gmail.com');
+
+insert into clienti
+values(seq_id_pt_toate.nextval,'Antonescu','Catalin','5656.194.221','antonescucatalin@gmail.com');
+
+insert into clienti
+values(seq_id_pt_toate.nextval,'Popescu','Andreea','1535.279.858','popescuandreea@gmail.com');
+
+insert into clienti
+values(seq_id_pt_toate.nextval,'Ionescu','Catalin','2265.691.445','ionescucatalin@gmail.com');
+
+insert into clienti
+values(seq_id_pt_toate.nextval,'Mircea','Ion','5389.488.939','mirceaion@gmail.com');
+
+insert into clienti
+values(seq_id_pt_toate.nextval,'Vladileanu','Andrei','8532.837.501','vladileanuandrei@gmail.com');
+
+insert into clienti
+values(seq_id_pt_toate.nextval,'Antonescu','Doina','3213.955.494','antonescudoina@gmail.com');
+
+insert into clienti
+values(seq_id_pt_toate.nextval,'Sovei','Catalin','3987.471.823','soveicatalin@gmail.com');
+
+insert into clienti
+values(seq_id_pt_toate.nextval,'Antonescu','Daniel','2031.861.516','antonescudaniel@gmail.com');
+
+insert into clienti
+values(seq_id_pt_toate.nextval,'Ionescu','Violeta','2273.523.916','ionescuvioleta@gmail.com');
+
+insert into clienti
+values(seq_id_pt_toate.nextval,'Popa','Medeea','5616.358.602','popamedeea@gmail.com');
+
+insert into clienti
+values(seq_id_pt_toate.nextval,'Antonescu','Robert','2030.474.801','antonescurobert@gmail.com');
+
+insert into clienti
+values(seq_id_pt_toate.nextval,'Ghergu','Matei','4560.905.729','ghergumatei18@gmail.com');
+
+insert into clienti
+values(seq_id_pt_toate.nextval,'Popescu','Violeta','2712.943.261','popescuvioleta@gmail.com');
+
+insert into clienti
+values(seq_id_pt_toate.nextval,'Ghergu','Matei','3744.688.842','ghergumatei@gmail.com');
+
+insert into clienti
+values(seq_id_pt_toate.nextval,'Ghergu','Doina','9246.806.630','ghergudoina@gmail.com');
+
+insert into clienti
+values(seq_id_pt_toate.nextval,'Sovei','Medeea','6468.923.930','soveimedeea@gmail.com');
+
+insert into clienti
+values(seq_id_pt_toate.nextval,'Cotofana','Luciana','7500.174.667','cotofanaluciana@gmail.com');
+
+insert into clienti(client_id,nume_client,prenume_client,email)
+values(seq_id_pt_toate.nextval,'Cotofana','Robert','cotofana12robert@yahoo.com');
+
+insert into clienti(client_id,nume_client,prenume_client,email)
+values(seq_id_pt_toate.nextval,'Ghergu','Ion','ghergu8ion@yahoo.com');
+
+insert into clienti(client_id,nume_client,prenume_client,email)
+values(seq_id_pt_toate.nextval,'Popa','Cezar','popa12cezar@yahoo.com');
+
+insert into clienti(client_id,nume_client,prenume_client,email)
+values(seq_id_pt_toate.nextval,'Ionescu','Jamila','ionescu7jamila@yahoo.com');
+
+insert into clienti(client_id,nume_client,prenume_client,email)
+values(seq_id_pt_toate.nextval,'Vladileanu','Aza','vladileanu5aza@yahoo.com');
+
+insert into clienti(client_id,nume_client,prenume_client,email)
+values(seq_id_pt_toate.nextval,'Popescu','Ion','popescu8ion@yahoo.com');
+
+insert into clienti(client_id,nume_client,prenume_client,email)
+values(seq_id_pt_toate.nextval,'Farcasi','Andrei','farcasi3andrei@yahoo.com');
+
+insert into clienti(client_id,nume_client,prenume_client,email)
+values(seq_id_pt_toate.nextval,'Ionescu','Robert','ionescu2robert@yahoo.com');
+
+insert into clienti(client_id,nume_client,prenume_client,email)
+values(seq_id_pt_toate.nextval,'Ghergu','Andreea','ghergu11andreea@yahoo.com');
+
+insert into clienti(client_id,nume_client,prenume_client,email)
+values(seq_id_pt_toate.nextval,'Culinaru','Medeea','culinaru9medeea@yahoo.com');
+
+insert into clienti(client_id,nume_client,prenume_client,email)
+values(seq_id_pt_toate.nextval,'Antonescu','Catalin','antonescu9catalin@yahoo.com');
+
+insert into clienti(client_id,nume_client,prenume_client,email)
+values(seq_id_pt_toate.nextval,'Culinaru','Aza','culinaru5aza@yahoo.com');
+
+insert into clienti(client_id,nume_client,prenume_client,email)
+values(seq_id_pt_toate.nextval,'Stoica','Matei','stoica4matei@yahoo.com');
+
+insert into clienti(client_id,nume_client,prenume_client,email)
+values(seq_id_pt_toate.nextval,'Mircea','Andrei','mircea12andrei@yahoo.com');
+
+insert into clienti(client_id,nume_client,prenume_client,email)
+values(seq_id_pt_toate.nextval,'Mircea','Luciana','mircea2luciana@yahoo.com');
+
+insert into clienti(client_id,nume_client,prenume_client,email)
+values(seq_id_pt_toate.nextval,'Vladileanu','Luciana','vladileanu6luciana@yahoo.com');
+
+insert into clienti(client_id,nume_client,prenume_client,email)
+values(seq_id_pt_toate.nextval,'Ionescu','Daniel','ionescu2daniel@yahoo.com');
+
+insert into clienti(client_id,nume_client,prenume_client,email)
+values(seq_id_pt_toate.nextval,'Culinaru','Robert','culinaru5robert@yahoo.com');
+
+insert into clienti(client_id,nume_client,prenume_client,email)
+values(seq_id_pt_toate.nextval,'Sovei','Robert','sovei4robert@yahoo.com');
+
+insert into clienti(client_id,nume_client,prenume_client,email)
+values(seq_id_pt_toate.nextval,'Stoica','Doina','stoica1doina@yahoo.com');
+
+insert into clienti(client_id,nume_client,prenume_client,email)
+values(seq_id_pt_toate.nextval,'Vladileanu','Robert','vladileanu13robert@yahoo.com');
+
+insert into clienti(client_id,nume_client,prenume_client,email)
+values(seq_id_pt_toate.nextval,'Serban','Daniel','serban6daniel@yahoo.com');
+
+insert into clienti(client_id,nume_client,prenume_client,email)
+values(seq_id_pt_toate.nextval,'Cotofana','Andreea','cotofana14andreea@yahoo.com');
+
+insert into clienti(client_id,nume_client,prenume_client,email)
+values(seq_id_pt_toate.nextval,'Ilias','Robert','ilias6robert@yahoo.com');
+
+insert into clienti(client_id,nume_client,prenume_client,email)
+values(seq_id_pt_toate.nextval,'Antonescu','Cezar','antonescu1cezar@yahoo.com');
+
+insert into clienti
+values(seq_id_pt_toate.nextval,'Cotofana','Robert','7961.883.756','cotofana12robert@gmail.com');
+
+insert into clienti
+values(seq_id_pt_toate.nextval,'Farcasi','Doina','2927.651.155','farcasi5doina@gmail.com');
+
+insert into clienti
+values(seq_id_pt_toate.nextval,'Anghel','Luciana','5841.362.485','anghel4luciana@gmail.com');
+
+insert into clienti
+values(seq_id_pt_toate.nextval,'Serban','Teodor','4253.695.485','serban6teodor@gmail.com');
+
+insert into clienti
+values(seq_id_pt_toate.nextval,'Anghel','Alexia','1008.212.145','anghel12alexia@gmail.com');
+
+insert into clienti
+values(seq_id_pt_toate.nextval,'Anghel','Jamila','7497.733.519','anghel3jamila@gmail.com');
+
+insert into clienti
+values(seq_id_pt_toate.nextval,'Farcasi','Cezar','2069.633.278','farcasi14cezar@gmail.com');
+
+insert into clienti
+values(seq_id_pt_toate.nextval,'Ionescu','Cezar','3094.372.520','ionescu9cezar@gmail.com');
+
+insert into clienti
+values(seq_id_pt_toate.nextval,'Ionescu','Doina','8848.872.496','ionescu12doina@gmail.com');
+
+insert into clienti(client_id,nume_client,telefon,email)
+values(seq_id_pt_toate.nextval,'Ilias','6483.792.164','ilias3@yahoo.com');
+
+insert into clienti(client_id,nume_client,telefon,email)
+values(seq_id_pt_toate.nextval,'Sovei','1977.374.671','sovei1@yahoo.com');
+
+insert into clienti(client_id,nume_client,telefon,email)
+values(seq_id_pt_toate.nextval,'Popa','7128.803.922','popa6@yahoo.com');
+
+insert into clienti(client_id,nume_client,telefon,email)
+values(seq_id_pt_toate.nextval,'Farcasi','4549.589.732','farcasi10@yahoo.com');
+
+
+
+alter sequence seq_id_pt_toate restart;
+
+insert into snacks_uri
+values(seq_id_pt_toate.nextval,'Chio Chips',10
+);
+
+insert into snacks_uri
+values(seq_id_pt_toate.nextval,'Lays Chips',14.50
+);
+
+insert into snacks_uri
+values(seq_id_pt_toate.nextval,'Doritos Sweet Chilli',12.5
+);
+
+insert into snacks_uri
+values(seq_id_pt_toate.nextval,'Popcorn sare',20
+);
+
+insert into snacks_uri
+values(seq_id_pt_toate.nextval,'Popcorn caramel',25
+);
+
+insert into snacks_uri
+values(seq_id_pt_toate.nextval,'Apa',5
+);
+
+insert into snacks_uri
+values(seq_id_pt_toate.nextval,'Pepsi',10
+);
+
+insert into snacks_uri
+values(seq_id_pt_toate.nextval,'Fanta',10
+);
+
+insert into snacks_uri
+values(seq_id_pt_toate.nextval,'Fuze Tea',10
+);
+
+insert into snacks_uri
+values(seq_id_pt_toate.nextval,'Sprite',10);
+
+alter sequence seq_id_pt_toate restart;
+
+insert into tranzactii(client_id, snack_id)
+values(50,10);
+
+insert into tranzactii(client_id, snack_id)
+values(20,8);
+
+insert into tranzactii(client_id, snack_id)
+values(19,8);
+
+insert into tranzactii(client_id, snack_id)
+values(23,3);
+
+insert into tranzactii(client_id, snack_id)
+values(36,5);
+
+insert into tranzactii(client_id, snack_id)
+values(17,3);
+
+insert into tranzactii(client_id, snack_id)
+values(36,7);
+
+insert into tranzactii(client_id, snack_id)
+values(46,1);
+
+insert into tranzactii(client_id, snack_id)
+values(28,4);
+
+insert into tranzactii(client_id, snack_id)
+values(53,9);
+
+insert into tranzactii(client_id, snack_id)
+values(38,1);
+
+insert into tranzactii(client_id, snack_id)
+values(56,1);
+
+insert into tranzactii(client_id, snack_id)
+values(46,7);
+
+insert into tranzactii(client_id, snack_id)
+values(24,2);
+
+insert into tranzactii(client_id, snack_id)
+values(52,9);
+
+insert into tranzactii(client_id, snack_id)
+values(51,7);
+
+insert into tranzactii(client_id, snack_id)
+values(10,8);
+
+insert into tranzactii(client_id, snack_id)
+values(40,5);
+
+insert into tranzactii(client_id, snack_id)
+values(54,8);
+
+insert into tranzactii(client_id, snack_id)
+values(3,9);
+
+insert into tranzactii(client_id, snack_id)
+values(30,3);
+
+insert into tranzactii(client_id, snack_id)
+values(46,9);
+
+insert into tranzactii(client_id, snack_id)
+values(48,1);
+
+insert into tranzactii(client_id, snack_id)
+values(48,3);
+
+insert into tranzactii(client_id, snack_id)
+values(16,8);
+
+insert into tranzactii
+values(37,7,to_date(sysdate-5,'dd-mm-yyyy'));
+
+insert into tranzactii
+values(57,5,to_date(sysdate-5,'dd-mm-yyyy'));
+
+insert into tranzactii
+values(45,8,to_date(sysdate-5,'dd-mm-yyyy'));
+
+insert into tranzactii
+values(33,5,to_date(sysdate-5,'dd-mm-yyyy'));
+
+insert into tranzactii
+values(29,3,to_date(sysdate-5,'dd-mm-yyyy'));
+
+insert into tranzactii
+values(19,5,to_date(sysdate-5,'dd-mm-yyyy'));
+
+insert into tranzactii
+values(47,4,to_date(sysdate-5,'dd-mm-yyyy'));
+
+insert into tranzactii
+values(38,8,to_date(sysdate-5,'dd-mm-yyyy'));
+
+insert into tranzactii
+values(29,7,to_date(sysdate-5,'dd-mm-yyyy'));
+
+insert into tranzactii
+values(5,6,to_date(sysdate-5,'dd-mm-yyyy'));
+
+insert into tranzactii
+values(15,3,to_date(sysdate-5,'dd-mm-yyyy'));
+
+insert into tranzactii
+values(15,10,to_date(sysdate-5,'dd-mm-yyyy'));
+
+insert into tranzactii
+values(55,4,to_date(sysdate-5,'dd-mm-yyyy'));
+
+insert into tranzactii
+values(55,7,to_date(sysdate-5,'dd-mm-yyyy'));
+
+insert into tranzactii
+values(2,10,to_date(sysdate-5,'dd-mm-yyyy'));
+
+insert into tranzactii
+values(31,10,to_date(sysdate-10,'dd-mm-yyyy'));
+
+insert into tranzactii
+values(45,4,to_date(sysdate-10,'dd-mm-yyyy'));
+
+insert into tranzactii
+values(4,2,to_date(sysdate-10,'dd-mm-yyyy'));
+
+insert into tranzactii
+values(43,6,to_date(sysdate-10,'dd-mm-yyyy'));
+
+insert into tranzactii
+values(35,2,to_date(sysdate-10,'dd-mm-yyyy'));
+
+insert into tranzactii
+values(9,9,to_date(sysdate-10,'dd-mm-yyyy'));
+
+insert into tranzactii
+values(4,8,to_date(sysdate-10,'dd-mm-yyyy'));
+
+insert into tranzactii
+values(35,10,to_date(sysdate-10,'dd-mm-yyyy'));
+
+insert into tranzactii
+values(43,8,to_date(sysdate-10,'dd-mm-yyyy'));
+
+insert into tranzactii
+values(23,1,to_date(sysdate-10,'dd-mm-yyyy'));
+
+insert into tranzactii
+values(53,6,to_date(sysdate-10,'dd-mm-yyyy'));
+
+insert into tranzactii
+values(19,4,to_date(sysdate-10,'dd-mm-yyyy'));
+
+insert into tranzactii
+values(10,9,to_date(sysdate-10,'dd-mm-yyyy'));
+
+insert into tranzactii
+values(53,4,to_date(sysdate-10,'dd-mm-yyyy'));
+
+insert into tranzactii
+values(53,1,to_date(sysdate-10,'dd-mm-yyyy'));
+
+alter sequence seq_id_pt_toate restart;
+
+
+insert into sectiuni_lucru
+values(seq_id_pt_toate.nextval,'Casierie');
+
+insert into sectiuni_lucru
+values(seq_id_pt_toate.nextval,'Paza');
+
+insert into sectiuni_lucru
+values(seq_id_pt_toate.nextval,'Curatenie_Sali');
+
+insert into sectiuni_lucru
+values(seq_id_pt_toate.nextval,'Curatenie_grupuri_sanitare');
+
+insert into sectiuni_lucru
+values(seq_id_pt_toate.nextval,'Verificare_bilete');
+
+insert into sectiuni_lucru
+values(seq_id_pt_toate.nextval,'Difuzare_film');
+
+
+alter sequence seq_id_pt_toate restart;
+
+
+insert into locatii
+values(seq_id_pt_toate.nextval,'Bd_ul. Unirii','Buzau','Buzau');
+
+insert into locatii
+values(seq_id_pt_toate.nextval,'Str. Stefan cel Mare','Satu Nou','Vaslui');
+
+insert into locatii
+values(seq_id_pt_toate.nextval,'Bd_ul Republicii','Manasia','Urziceni');
+
+insert into locatii
+values(seq_id_pt_toate.nextval,'Str. Careiului 77','Ambud','Satu Mare');
+
+insert into locatii
+values(seq_id_pt_toate.nextval,'Str. Kis','Rimetea','Alba Iulia');
+
+insert into locatii
+values(seq_id_pt_toate.nextval,'Bd_ul. Eroilor 51','Sub Coasta','Cluj_Napoca');
+
+insert into locatii
+values(seq_id_pt_toate.nextval,'Str. Energiticianului.','Adancata','Suceava');
+
+insert into locatii
+values(seq_id_pt_toate.nextval,'Str. Cuza Voda 102','Municipiul Oltenita','Calarasi');
+
+insert into locatii
+values(seq_id_pt_toate.nextval,'Str. Grind','Urechesti','Targu Jiu');
+
+insert into locatii
+values(seq_id_pt_toate.nextval,'Calea Vacaresti','Sector 4','Bucuresti');
+
+insert into locatii
+values(seq_id_pt_toate.nextval,'Str. Justitiei','Sura Mica','Sibiu');
+
+insert into locatii
+values(seq_id_pt_toate.nextval,'Str. Sibiului 5','Poplaca','Sibiu');
+
+insert into locatii
+values(seq_id_pt_toate.nextval,'Calea Bucuresti','Cotofenii din Fata','Craiova');
+
+
+alter sequence seq_id_pt_toate restart;
+
+insert into cinematografe
+values(seq_id_pt_toate.nextval,13,7);
+
+insert into cinematografe
+values(seq_id_pt_toate.nextval,12,16);
+
+insert into cinematografe
+values(seq_id_pt_toate.nextval,11,24);
+
+insert into cinematografe
+values(seq_id_pt_toate.nextval,10,3);
+
+insert into cinematografe
+values(seq_id_pt_toate.nextval,9,3);
+
+insert into cinematografe
+values(seq_id_pt_toate.nextval,8,18);
+
+insert into cinematografe
+values(seq_id_pt_toate.nextval,7,19);
+
+insert into cinematografe
+values(seq_id_pt_toate.nextval,6,6);
+
+insert into cinematografe
+values(seq_id_pt_toate.nextval,5,3);
+
+insert into cinematografe
+values(seq_id_pt_toate.nextval,4,21);
+
+insert into cinematografe
+values(seq_id_pt_toate.nextval,3,10);
+
+insert into cinematografe
+values(seq_id_pt_toate.nextval,2,18);
+
+insert into cinematografe
+values(seq_id_pt_toate.nextval,1,19);
+
+
+alter sequence seq_id_pt_toate restart;
+
+
+insert into ture_angajati(tura_id,cinematograf_id,durata)
+values(seq_id_pt_toate.nextval,1,8);
+
+insert into ture_angajati(tura_id,cinematograf_id,durata)
+values(seq_id_pt_toate.nextval,1,5);
+
+insert into ture_angajati(tura_id,cinematograf_id,durata)
+values(seq_id_pt_toate.nextval,2,5);
+
+insert into ture_angajati(tura_id,cinematograf_id,durata)
+values(seq_id_pt_toate.nextval,2,7);
+
+insert into ture_angajati(tura_id,cinematograf_id,durata)
+values(seq_id_pt_toate.nextval,3,7);
+
+insert into ture_angajati(tura_id,cinematograf_id,durata)
+values(seq_id_pt_toate.nextval,3,8);
+
+insert into ture_angajati(tura_id,cinematograf_id,durata)
+values(seq_id_pt_toate.nextval,4,5);
+
+insert into ture_angajati(tura_id,cinematograf_id,durata)
+values(seq_id_pt_toate.nextval,4,4);
+
+insert into ture_angajati(tura_id,cinematograf_id,durata)
+values(seq_id_pt_toate.nextval,5,8);
+
+insert into ture_angajati(tura_id,cinematograf_id,durata)
+values(seq_id_pt_toate.nextval,5,5);
+
+insert into ture_angajati(tura_id,cinematograf_id,durata)
+values(seq_id_pt_toate.nextval,6,4);
+
+insert into ture_angajati(tura_id,cinematograf_id,durata)
+values(seq_id_pt_toate.nextval,6,8);
+
+insert into ture_angajati(tura_id,cinematograf_id,durata)
+values(seq_id_pt_toate.nextval,7,5);
+
+insert into ture_angajati(tura_id,cinematograf_id,durata)
+values(seq_id_pt_toate.nextval,7,7);
+
+insert into ture_angajati(tura_id,cinematograf_id,durata)
+values(seq_id_pt_toate.nextval,8,5);
+
+insert into ture_angajati(tura_id,cinematograf_id,durata)
+values(seq_id_pt_toate.nextval,8,7);
+
+insert into ture_angajati(tura_id,cinematograf_id,durata)
+values(seq_id_pt_toate.nextval,9,7);
+
+insert into ture_angajati(tura_id,cinematograf_id,durata)
+values(seq_id_pt_toate.nextval,9,8);
+
+insert into ture_angajati(tura_id,cinematograf_id,durata)
+values(seq_id_pt_toate.nextval,10,5);
+
+insert into ture_angajati(tura_id,cinematograf_id,durata)
+values(seq_id_pt_toate.nextval,10,7);
+
+insert into ture_angajati(tura_id,cinematograf_id,durata)
+values(seq_id_pt_toate.nextval,11,4);
+
+insert into ture_angajati(tura_id,cinematograf_id,durata)
+values(seq_id_pt_toate.nextval,11,6);
+
+insert into ture_angajati(tura_id,cinematograf_id,durata)
+values(seq_id_pt_toate.nextval,12,8);
+
+insert into ture_angajati(tura_id,cinematograf_id,durata)
+values(seq_id_pt_toate.nextval,12,7);
+
+insert into ture_angajati(tura_id,cinematograf_id,durata)
+values(seq_id_pt_toate.nextval,13,8);
+
+insert into ture_angajati(tura_id,cinematograf_id,durata)
+values(seq_id_pt_toate.nextval,13,4);
+
+
+
+alter sequence seq_id_pt_toate restart;
+
+
+
+insert into angajati
+values(seq_id_pt_toate.nextval,1,1,'Anghel','Teodor',2000,'7212.178.483');
+
+insert into angajati
+values(seq_id_pt_toate.nextval,2,1,'Radaut','Flavia',1500,'5750.934.570');
+
+insert into angajati
+values(seq_id_pt_toate.nextval,3,1,'Farcasi','Andrei',2000,'4322.109.555');
+
+insert into angajati
+values(seq_id_pt_toate.nextval,4,1,'Ionescu','Medeea',2900,'1608.114.979');
+
+insert into angajati
+values(seq_id_pt_toate.nextval,5,1,'Serban','Andrei',1800,'9720.945.934');
+
+insert into angajati
+values(seq_id_pt_toate.nextval,6,1,'Stefanescu','Jamila',2200,'6562.865.786');
+
+insert into angajati
+values(seq_id_pt_toate.nextval,3,2,'Culinaru','Violeta',1900,'8810.917.762');
+
+insert into angajati
+values(seq_id_pt_toate.nextval,1,3,'Cormoran','Matei',1500,'8079.867.514');
+
+insert into angajati
+values(seq_id_pt_toate.nextval,2,3,'Ionescu','Andreea',1900,'5731.181.137');
+
+insert into angajati
+values(seq_id_pt_toate.nextval,3,3,'Culinaru','Andrei',1800,'6945.574.196');
+
+insert into angajati
+values(seq_id_pt_toate.nextval,4,3,'Ionescu','Alexia',1900,'6453.765.833');
+
+insert into angajati
+values(seq_id_pt_toate.nextval,5,3,'Farcasi','Flavia',3000,'3535.845.507');
+
+insert into angajati
+values(seq_id_pt_toate.nextval,6,3,'Ilias','Valentin',2500,'3622.645.856');
+
+insert into angajati
+values(seq_id_pt_toate.nextval,1,4,'Moraru','Aza',1900,'1747.624.811');
+
+insert into angajati
+values(seq_id_pt_toate.nextval,1,5,'Stefanescu','Luciana',2400,'8067.602.742');
+
+insert into angajati
+values(seq_id_pt_toate.nextval,2,5,'Moraru','Ion',2200,'5010.395.804');
+
+insert into angajati
+values(seq_id_pt_toate.nextval,3,5,'Popescu','Andreea',1900,'1624.910.859');
+
+insert into angajati
+values(seq_id_pt_toate.nextval,4,5,'Vladileanu','Daniel',2500,'8139.311.962');
+
+insert into angajati
+values(seq_id_pt_toate.nextval,5,5,'Popescu','Aza',1500,'7567.943.267');
+
+insert into angajati
+values(seq_id_pt_toate.nextval,6,5,'Cuza','Andreea',2400,'9410.496.972');
+
+insert into angajati
+values(seq_id_pt_toate.nextval,6,6,'Radaut','Marius',1900,'7368.980.524');
+
+insert into angajati
+values(seq_id_pt_toate.nextval,1,7,'Dascalu','Alexia',2200,'8976.580.387');
+
+insert into angajati
+values(seq_id_pt_toate.nextval,2,7,'Antonescu','Alexia',2500,'7714.818.758');
+
+insert into angajati
+values(seq_id_pt_toate.nextval,3,7,'Dumitru','Matei',2300,'7882.180.420');
+
+insert into angajati
+values(seq_id_pt_toate.nextval,4,7,'Antonescu','Robert',2800,'6741.815.573');
+
+insert into angajati
+values(seq_id_pt_toate.nextval,5,7,'Dascalu','Violeta',3000,'2180.439.398');
+
+insert into angajati
+values(seq_id_pt_toate.nextval,6,7,'Stoica','Ion',2400,'1625.525.140');
+
+insert into angajati
+values(seq_id_pt_toate.nextval,4,8,'Ionescu','Medeea',2100,'6756.401.619');
+
+insert into angajati
+values(seq_id_pt_toate.nextval,1,9,'Ionescu','Maria',2300,'8333.342.346');
+
+insert into angajati
+values(seq_id_pt_toate.nextval,2,9,'Dascalu','Marius',2000,'1322.892.470');
+
+insert into angajati
+values(seq_id_pt_toate.nextval,3,9,'Dascalu','Violeta',1800,'4958.422.480');
+
+insert into angajati
+values(seq_id_pt_toate.nextval,4,9,'Cotofana','Jamila',1600,'6229.263.689');
+
+insert into angajati
+values(seq_id_pt_toate.nextval,5,9,'Ilias','Jamila',2200,'9553.833.286');
+
+insert into angajati
+values(seq_id_pt_toate.nextval,6,9,'Antonescu','Maria',3000,'8842.304.606');
+
+insert into angajati
+values(seq_id_pt_toate.nextval,1,10,'Stoica','Aza',2400,'6576.542.194');
+
+insert into angajati
+values(seq_id_pt_toate.nextval,1,11,'Popescu','Valentin',2500,'3288.449.468');
+
+insert into angajati
+values(seq_id_pt_toate.nextval,2,11,'Radaut','Andrei',2100,'9354.439.518');
+
+insert into angajati
+values(seq_id_pt_toate.nextval,3,11,'Cuza','Daniel',1600,'4722.173.934');
+
+insert into angajati
+values(seq_id_pt_toate.nextval,4,11,'Cotofana','Medeea',2600,'9103.520.598');
+
+insert into angajati
+values(seq_id_pt_toate.nextval,5,11,'Anghel','Violeta',2600,'5495.321.265');
+
+insert into angajati
+values(seq_id_pt_toate.nextval,6,11,'Radaut','Valentin',2500,'2403.359.246');
+
+insert into angajati
+values(seq_id_pt_toate.nextval,5,12,'Stoica','Cristian',1600,'2291.599.739');
+
+insert into angajati
+values(seq_id_pt_toate.nextval,1,13,'Cotofana','Bogdan',2500,'9242.449.421');
+
+insert into angajati
+values(seq_id_pt_toate.nextval,2,13,'Cormoran','Ion',2600,'9796.338.668');
+
+insert into angajati
+values(seq_id_pt_toate.nextval,3,13,'Chifoi','Teodor',2400,'5499.595.871');
+
+insert into angajati
+values(seq_id_pt_toate.nextval,4,13,'Mircea','Doina',1900,'5363.552.805');
+
+insert into angajati
+values(seq_id_pt_toate.nextval,5,13,'Farcasi','Doina',1900,'4870.706.317');
+
+insert into angajati
+values(seq_id_pt_toate.nextval,6,13,'Stefanescu','Matei',1800,'6297.916.219');
+
+insert into angajati
+values(seq_id_pt_toate.nextval,4,14,'Serban','Maria',2900,'3273.248.904');
+
+insert into angajati
+values(seq_id_pt_toate.nextval,1,15,'Culinaru','Teodor',2300,'6873.512.831');
+
+insert into angajati
+values(seq_id_pt_toate.nextval,2,15,'Serban','Luciana',2000,'7315.788.906');
+
+insert into angajati
+values(seq_id_pt_toate.nextval,3,15,'Farcasi','Luciana',2500,'2015.526.592');
+
+insert into angajati
+values(seq_id_pt_toate.nextval,4,15,'Cormoran','Andrei',2900,'1394.672.498');
+
+insert into angajati
+values(seq_id_pt_toate.nextval,5,15,'Culinaru','Teodor',2100,'2121.452.908');
+
+insert into angajati
+values(seq_id_pt_toate.nextval,6,15,'Chifoi','Robert',3000,'5656.811.529');
+
+insert into angajati
+values(seq_id_pt_toate.nextval,3,16,'Antonescu','Cosmin',2800,'7970.635.937');
+
+insert into angajati
+values(seq_id_pt_toate.nextval,1,17,'Popescu','Jamila',2200,'9393.178.841');
+
+insert into angajati
+values(seq_id_pt_toate.nextval,2,17,'Chifoi','Violeta',3000,'3925.326.105');
+
+insert into angajati
+values(seq_id_pt_toate.nextval,3,17,'Popa','Alexia',2500,'5704.978.869');
+
+insert into angajati
+values(seq_id_pt_toate.nextval,4,17,'Popescu','Violeta',3000,'6998.340.995');
+
+insert into angajati
+values(seq_id_pt_toate.nextval,5,17,'Ionescu','Ion',2600,'8332.407.787');
+
+insert into angajati
+values(seq_id_pt_toate.nextval,6,17,'Ilias','Jamila',2100,'7944.650.478');
+
+insert into angajati
+values(seq_id_pt_toate.nextval,4,18,'Sovei','Matei',1500,'7332.984.283');
+
+insert into angajati
+values(seq_id_pt_toate.nextval,1,19,'Stefanescu','Cristian',2000,'1491.310.568');
+
+insert into angajati
+values(seq_id_pt_toate.nextval,2,19,'Popescu','Valentin',2900,'7060.723.934');
+
+insert into angajati
+values(seq_id_pt_toate.nextval,3,19,'Ghergu','Flavia',1800,'3768.784.859');
+
+insert into angajati
+values(seq_id_pt_toate.nextval,4,19,'Stefanescu','Flavia',2200,'3802.825.790');
+
+insert into angajati
+values(seq_id_pt_toate.nextval,5,19,'Ionescu','Aza',2100,'1757.570.411');
+
+insert into angajati
+values(seq_id_pt_toate.nextval,6,19,'Sovei','Daniel',2300,'8490.144.481');
+
+insert into angajati
+values(seq_id_pt_toate.nextval,4,20,'Serban','Cezar',2600,'5177.703.188');
+
+insert into angajati
+values(seq_id_pt_toate.nextval,1,21,'Culinaru','Teodor',2100,'7018.937.925');
+
+insert into angajati
+values(seq_id_pt_toate.nextval,2,21,'Cuza','Doina',2500,'3945.216.565');
+
+insert into angajati
+values(seq_id_pt_toate.nextval,3,21,'Dascalu','Daniel',2600,'2186.874.213');
+
+insert into angajati
+values(seq_id_pt_toate.nextval,4,21,'Ghergu','Catalin',1900,'2683.383.608');
+
+insert into angajati
+values(seq_id_pt_toate.nextval,5,21,'Farcasi','Cristian',2500,'2611.664.250');
+
+insert into angajati
+values(seq_id_pt_toate.nextval,6,21,'Culinaru','Doina',1600,'7680.494.555');
+
+insert into angajati
+values(seq_id_pt_toate.nextval,1,22,'Chifoi','Luciana',2400,'2543.801.952');
+
+insert into angajati
+values(seq_id_pt_toate.nextval,1,23,'Sovei','Alexia',2100,'9767.102.969');
+
+insert into angajati
+values(seq_id_pt_toate.nextval,2,23,'Chifoi','Andrei',1500,'2136.575.977');
+
+insert into angajati
+values(seq_id_pt_toate.nextval,3,23,'Cotofana','Robert',1900,'1584.973.715');
+
+insert into angajati
+values(seq_id_pt_toate.nextval,4,23,'Dascalu','Bogdan',1800,'3955.835.165');
+
+insert into angajati
+values(seq_id_pt_toate.nextval,5,23,'Culinaru','Daniel',2300,'5393.900.154');
+
+insert into angajati
+values(seq_id_pt_toate.nextval,6,23,'Anghel','Bogdan',1800,'2914.945.847');
+
+insert into angajati
+values(seq_id_pt_toate.nextval,5,24,'Radaut','Cosmin',1500,'2363.726.467');
+
+insert into angajati
+values(seq_id_pt_toate.nextval,1,25,'Culinaru','Cristian',2900,'4529.848.778');
+
+insert into angajati
+values(seq_id_pt_toate.nextval,2,25,'Vladileanu','Teodor',2800,'6212.806.471');
+
+insert into angajati
+values(seq_id_pt_toate.nextval,3,25,'Chifoi','Ion',1800,'1669.306.353');
+
+insert into angajati
+values(seq_id_pt_toate.nextval,4,25,'Ionescu','Flavia',2800,'9568.878.393');
+
+insert into angajati
+values(seq_id_pt_toate.nextval,5,25,'Cotofana','Andrei',2500,'4549.877.261');
+
+insert into angajati
+values(seq_id_pt_toate.nextval,6,25,'Stefanescu','Valentin',2500,'4963.188.966');
+
+insert into angajati
+values(seq_id_pt_toate.nextval,4,26,'Popescu','Alexia',2900,'6047.371.939');
+
+
+
+alter sequence seq_id_pt_toate restart;
+
+
+insert into sali_cinematograf
+values(seq_id_pt_toate.nextval,1,20);
+
+insert into sali_cinematograf
+values(seq_id_pt_toate.nextval,1,82);
+
+insert into sali_cinematograf
+values(seq_id_pt_toate.nextval,2,22);
+
+insert into sali_cinematograf
+values(seq_id_pt_toate.nextval,3,43);
+
+insert into sali_cinematograf
+values(seq_id_pt_toate.nextval,3,38);
+
+insert into sali_cinematograf
+values(seq_id_pt_toate.nextval,3,52);
+
+insert into sali_cinematograf
+values(seq_id_pt_toate.nextval,4,54);
+
+insert into sali_cinematograf
+values(seq_id_pt_toate.nextval,4,84);
+
+insert into sali_cinematograf
+values(seq_id_pt_toate.nextval,4,52);
+
+insert into sali_cinematograf
+values(seq_id_pt_toate.nextval,5,46);
+
+insert into sali_cinematograf
+values(seq_id_pt_toate.nextval,6,22);
+
+insert into sali_cinematograf
+values(seq_id_pt_toate.nextval,7,91);
+
+insert into sali_cinematograf
+values(seq_id_pt_toate.nextval,7,27);
+
+insert into sali_cinematograf
+values(seq_id_pt_toate.nextval,8,52);
+
+insert into sali_cinematograf
+values(seq_id_pt_toate.nextval,8,76);
+
+insert into sali_cinematograf
+values(seq_id_pt_toate.nextval,8,85);
+
+insert into sali_cinematograf
+values(seq_id_pt_toate.nextval,8,90);
+
+insert into sali_cinematograf
+values(seq_id_pt_toate.nextval,9,93);
+
+insert into sali_cinematograf
+values(seq_id_pt_toate.nextval,9,84);
+
+insert into sali_cinematograf
+values(seq_id_pt_toate.nextval,9,76);
+
+insert into sali_cinematograf
+values(seq_id_pt_toate.nextval,10,55);
+
+insert into sali_cinematograf
+values(seq_id_pt_toate.nextval,10,70);
+
+insert into sali_cinematograf
+values(seq_id_pt_toate.nextval,11,88);
+
+insert into sali_cinematograf
+values(seq_id_pt_toate.nextval,12,30);
+
+insert into sali_cinematograf
+values(seq_id_pt_toate.nextval,13,45);
+
+insert into sali_cinematograf
+values(seq_id_pt_toate.nextval,13,49);
+
+
+alter sequence seq_id_pt_toate restart;
+
+
+insert into transmiteri
+values(seq_id_pt_toate.nextval,7,9,'28-04-2023,15:00',59);
+
+insert into transmiteri
+values(seq_id_pt_toate.nextval,11,13,'29-05-2023,14:30',12);
+
+insert into transmiteri
+values(seq_id_pt_toate.nextval,2,16,'29-04-2023,17:00',84);
+
+insert into transmiteri
+values(seq_id_pt_toate.nextval,11,5,'13-07-2023,18:50',22);
+
+insert into transmiteri
+values(seq_id_pt_toate.nextval,10,10,'23-08-2023,20:50',66);
+
+insert into transmiteri
+values(seq_id_pt_toate.nextval,3,21,'10-09-2023,24:50',81);
+
+insert into transmiteri
+values(seq_id_pt_toate.nextval,2,1,'14-08-2023,17:10',44);
+
+insert into transmiteri
+values(seq_id_pt_toate.nextval,3,19,'21-08-2023,17:40',71);
+
+insert into transmiteri
+values(seq_id_pt_toate.nextval,13,24,'21-08-2023,18:30',19);
+
+insert into transmiteri
+values(seq_id_pt_toate.nextval,3,11,'19-03-2023,14:30',30);
+
+
+alter sequence seq_id_pt_toate restart;
+
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,1,'f',10);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,1,'i',9);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,1,'e',1);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,1,'b',1);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,1,'n',5);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,1,'p',3);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,1,'i',7);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,1,'w',2);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,1,'e',4);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,2,'j',13);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,2,'t',18);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,2,'h',23);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,2,'x',16);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,2,'r',29);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,3,'c',8);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,3,'s',2);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,3,'r',7);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,3,'q',7);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,3,'l',3);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,3,'y',8);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,3,'r',4);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,3,'s',11);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,3,'h',4);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,4,'b',13);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,4,'u',1);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,4,'z',9);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,4,'k',13);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,4,'o',3);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,4,'z',4);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,4,'t',2);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,4,'r',3);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,4,'m',9);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,5,'b',1);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,5,'b',6);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,5,'p',7);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,5,'j',2);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,5,'m',2);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,5,'z',2);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,5,'m',9);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,5,'e',9);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,5,'u',19);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,6,'o',18);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,6,'l',24);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,6,'o',8);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,6,'i',7);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,6,'p',18);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,6,'q',6);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,6,'q',25);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,6,'c',11);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,7,'p',25);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,7,'i',23);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,7,'b',9);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,8,'j',15);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,8,'r',32);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,8,'e',21);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,9,'u',22);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,9,'j',26);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,9,'h',26);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,9,'q',12);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,9,'a',4);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,9,'d',13);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,9,'a',7);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,9,'h',8);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,10,'m',15);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,10,'x',12);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,10,'q',8);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,10,'j',10);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,10,'u',22);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,11,'m',6);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,11,'e',4);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,11,'h',10);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,11,'t',5);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,11,'v',6);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,11,'s',1);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,11,'g',6);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,11,'j',10);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,12,'e',1);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,12,'t',28);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,12,'f',45);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,12,'k',17);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,12,'j',37);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,12,'x',36);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,12,'v',7);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,12,'g',26);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,13,'b',2);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,13,'d',2);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,13,'w',1);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,13,'r',5);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,13,'y',4);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,13,'q',10);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,13,'o',3);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,13,'b',4);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,13,'q',8);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,14,'v',12);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,15,'z',26);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,15,'j',17);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,15,'b',3);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,15,'u',25);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,15,'y',24);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,15,'s',10);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,15,'m',35);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,15,'d',7);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,15,'g',31);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,15,'x',36);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,16,'e',37);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,16,'o',33);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,16,'d',24);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,16,'w',4);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,16,'d',26);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,16,'j',37);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,17,'p',43);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,17,'c',3);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,18,'o',34);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,18,'w',45);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,18,'d',27);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,18,'w',39);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,18,'p',40);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,18,'l',29);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,18,'i',29);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,19,'x',40);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,19,'q',3);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,20,'v',24);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,20,'z',2);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,20,'d',1);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,20,'k',22);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,20,'d',11);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,20,'m',16);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,21,'z',18);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,21,'t',12);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,21,'v',11);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,21,'m',27);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,21,'q',1);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,22,'v',33);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,22,'i',31);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,23,'b',6);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,23,'w',4);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,23,'t',39);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,23,'c',16);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,23,'m',37);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,23,'m',42);
+
+insert into locuri_sala
+values(seq_id_pt_toate.nextval,23,'t',23);
+
+
+alter sequence seq_id_pt_toate restart;
+
+insert into bilete
+values(seq_id_pt_toate.nextval,2);
+
+insert into bilete
+values(seq_id_pt_toate.nextval,4);
+
+insert into bilete
+values(seq_id_pt_toate.nextval,6);
+
+insert into bilete
+values(seq_id_pt_toate.nextval,8);
+
+insert into bilete
+values(seq_id_pt_toate.nextval,10);
+
+insert into bilete
+values(seq_id_pt_toate.nextval,12);
+
+insert into bilete
+values(seq_id_pt_toate.nextval,14);
+
+insert into bilete
+values(seq_id_pt_toate.nextval,16);
+
+insert into bilete
+values(seq_id_pt_toate.nextval,18);
+
+insert into bilete
+values(seq_id_pt_toate.nextval,20);
+
+insert into bilete
+values(seq_id_pt_toate.nextval,22);
+
+insert into bilete
+values(seq_id_pt_toate.nextval,24);
+
+insert into bilete
+values(seq_id_pt_toate.nextval,26);
+
+insert into bilete
+values(seq_id_pt_toate.nextval,28);
+
+insert into bilete
+values(seq_id_pt_toate.nextval,30);
+
+insert into bilete
+values(seq_id_pt_toate.nextval,32);
+
+insert into bilete
+values(seq_id_pt_toate.nextval,34);
+
+insert into bilete
+values(seq_id_pt_toate.nextval,36);
+
+insert into bilete
+values(seq_id_pt_toate.nextval,38);
+
+insert into bilete
+values(seq_id_pt_toate.nextval,40);
+
+insert into bilete
+values(seq_id_pt_toate.nextval,42);
+
+insert into bilete
+values(seq_id_pt_toate.nextval,44);
+
+insert into bilete
+values(seq_id_pt_toate.nextval,46);
+
+insert into bilete
+values(seq_id_pt_toate.nextval,48);
+
+insert into bilete
+values(seq_id_pt_toate.nextval,50);
+
+insert into bilete
+values(seq_id_pt_toate.nextval,52);
+
+insert into bilete
+values(seq_id_pt_toate.nextval,54);
+
+insert into bilete
+values(seq_id_pt_toate.nextval,56);
+
+insert into bilete
+values(seq_id_pt_toate.nextval,58);
+
+insert into bilete
+values(seq_id_pt_toate.nextval,60);
+
+insert into bilete
+values(seq_id_pt_toate.nextval,62);
+
+insert into bilete
+values(seq_id_pt_toate.nextval,64);
+
+insert into bilete
+values(seq_id_pt_toate.nextval,66);
+
+insert into bilete
+values(seq_id_pt_toate.nextval,68);
+
+insert into bilete
+values(seq_id_pt_toate.nextval,70);
+
+insert into bilete
+values(seq_id_pt_toate.nextval,72);
+
+insert into bilete
+values(seq_id_pt_toate.nextval,74);
+
+insert into bilete
+values(seq_id_pt_toate.nextval,76);
+
+insert into bilete
+values(seq_id_pt_toate.nextval,78);
+
+insert into bilete
+values(seq_id_pt_toate.nextval,80);
+
+insert into bilete
+values(seq_id_pt_toate.nextval,82);
+
+insert into bilete
+values(seq_id_pt_toate.nextval,84);
+
+insert into bilete
+values(seq_id_pt_toate.nextval,86);
+
+insert into bilete
+values(seq_id_pt_toate.nextval,88);
+
+insert into bilete
+values(seq_id_pt_toate.nextval,90);
+
+insert into bilete
+values(seq_id_pt_toate.nextval,92);
+
+insert into bilete
+values(seq_id_pt_toate.nextval,94);
+
+insert into bilete
+values(seq_id_pt_toate.nextval,96);
+
+insert into bilete
+values(seq_id_pt_toate.nextval,98);
+
+insert into bilete
+values(seq_id_pt_toate.nextval,100);
+
+
+alter sequence seq_id_pt_toate restart;
+
+
+insert into rezervari
+values(seq_id_pt_toate.nextval,2,36);
+
+insert into rezervari
+values(seq_id_pt_toate.nextval,4,1);
+
+insert into rezervari
+values(seq_id_pt_toate.nextval,5,30);
+
+insert into rezervari
+values(seq_id_pt_toate.nextval,3,28);
+
+insert into rezervari
+values(seq_id_pt_toate.nextval,4,9);
+
+insert into rezervari
+values(seq_id_pt_toate.nextval,8,4);
+
+insert into rezervari
+values(seq_id_pt_toate.nextval,6,37);
+
+insert into rezervari
+values(seq_id_pt_toate.nextval,9,36);
+
+insert into rezervari
+values(seq_id_pt_toate.nextval,4,22);
+
+insert into rezervari
+values(seq_id_pt_toate.nextval,4,13);
+
+insert into rezervari
+values(seq_id_pt_toate.nextval,10,23);
+
+insert into rezervari
+values(seq_id_pt_toate.nextval,9,38);
+
+insert into rezervari
+values(seq_id_pt_toate.nextval,9,9);
+
+insert into rezervari
+values(seq_id_pt_toate.nextval,6,30);
+
+insert into rezervari
+values(seq_id_pt_toate.nextval,1,6);
+
+insert into rezervari
+values(seq_id_pt_toate.nextval,3,25);
+
+insert into rezervari
+values(seq_id_pt_toate.nextval,2,2);
+
+insert into rezervari
+values(seq_id_pt_toate.nextval,3,30);
+
+insert into rezervari
+values(seq_id_pt_toate.nextval,4,17);
+
+insert into rezervari
+values(seq_id_pt_toate.nextval,1,34);
+
+insert into rezervari
+values(seq_id_pt_toate.nextval,6,46);
+
+insert into rezervari
+values(seq_id_pt_toate.nextval,5,38);
+
+insert into rezervari
+values(seq_id_pt_toate.nextval,4,47);
+
+insert into rezervari
+values(seq_id_pt_toate.nextval,2,48);
+
+insert into rezervari
+values(seq_id_pt_toate.nextval,1,12);
+
+insert into rezervari
+values(seq_id_pt_toate.nextval,8,44);
+
+insert into rezervari
+values(seq_id_pt_toate.nextval,5,27);
+
+insert into rezervari
+values(seq_id_pt_toate.nextval,5,36);
+
+insert into rezervari
+values(seq_id_pt_toate.nextval,2,40);
+
+insert into rezervari
+values(seq_id_pt_toate.nextval,9,7);
+
+insert into rezervari
+values(seq_id_pt_toate.nextval,1,24);
+
+insert into rezervari
+values(seq_id_pt_toate.nextval,5,34);
+
+insert into rezervari
+values(seq_id_pt_toate.nextval,7,29);
+
+insert into rezervari
+values(seq_id_pt_toate.nextval,2,19);
+
+insert into rezervari
+values(seq_id_pt_toate.nextval,3,8);
+
+insert into rezervari
+values(seq_id_pt_toate.nextval,2,13);
+
+insert into rezervari
+values(seq_id_pt_toate.nextval,7,27);
+
+insert into rezervari
+values(seq_id_pt_toate.nextval,7,48);
+
+insert into rezervari
+values(seq_id_pt_toate.nextval,8,22);
+
+insert into rezervari
+values(seq_id_pt_toate.nextval,1,27);
+
+insert into rezervari
+values(seq_id_pt_toate.nextval,6,17);
+
+insert into rezervari
+values(seq_id_pt_toate.nextval,3,12);
+
+insert into rezervari
+values(seq_id_pt_toate.nextval,7,42);
+
+insert into rezervari
+values(seq_id_pt_toate.nextval,3,23);
+
+insert into rezervari
+values(seq_id_pt_toate.nextval,5,33);
+
+insert into rezervari
+values(seq_id_pt_toate.nextval,7,19);
+
+insert into rezervari
+values(seq_id_pt_toate.nextval,9,45);
+
+insert into rezervari
+values(seq_id_pt_toate.nextval,5,12);
+
+insert into rezervari
+values(seq_id_pt_toate.nextval,9,40);
+
+insert into rezervari
+values(seq_id_pt_toate.nextval,7,13);
+
+insert into rezervari
+values(seq_id_pt_toate.nextval,7,8);
+
+insert into rezervari
+values(seq_id_pt_toate.nextval,7,14);
+
+insert into rezervari
+values(seq_id_pt_toate.nextval,7,49);
+
+insert into rezervari
+values(seq_id_pt_toate.nextval,2,5);
+
+insert into rezervari
+values(seq_id_pt_toate.nextval,3,18);
+
+insert into rezervari
+values(seq_id_pt_toate.nextval,2,11);
+
+insert into rezervari
+values(seq_id_pt_toate.nextval,4,44);
+
+insert into rezervari
+values(seq_id_pt_toate.nextval,5,45);
+
+insert into rezervari
+values(seq_id_pt_toate.nextval,10,18);
+
+insert into rezervari
+values(seq_id_pt_toate.nextval,6,10);
+
+insert into rezervari
+values(seq_id_pt_toate.nextval,4,11);
+
+insert into rezervari
+values(seq_id_pt_toate.nextval,8,10);
+
+insert into rezervari
+values(seq_id_pt_toate.nextval,9,41);
+
+
+
+
+

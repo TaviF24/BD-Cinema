@@ -1,0 +1,164 @@
+--12
+-- Ex1: Sa se afiseze codul, numele si prenumele concatenate, salariul, numele sectiunii si durata turei celor mai puțin platiti angajati din fiecare sectiune care au in componenta numelui litera A.
+
+-- •subcereri sincronizate în care intervin cel puțin 3 tabele
+-- •utilizarea a cel puțin 2 funcții pe șiruri de caractere
+
+select a.angajat_id, a.nume_angajat||' '||a.prenume_angajat, a.salariu, s.nume_sectiune, t.durata
+from angajati a, sectiuni_lucru s, ture_angajati t
+where a.sectiune_id=s.sectiune_id and a.tura_id=t.tura_id and 
+    a.salariu=(select min(salariu) 
+    		   from angajati
+				where a.sectiune_id=sectiune_id) and lower(a.nume_angajat) like '%a%';
+
+
+
+-- Ex2: Sa se afiseze sectiunile, impreuna cu suma tuturor salariilor, si numarul de ture din acea sectiune, care au suma si numarul de ture mai mari decat minimul sumelor salariilor si numarul de ture al sectiunilor a caror denumire au lungimea cel mult 13. Rezultatul sa fie ordonat dupa suma salariilor.
+
+-- •grupări de date cu  subcereri  nesincronizate  in  care  intervin  cel  putin  3  tabele, funcții grup, filtrare la nivel de grupuri(in cadrul aceleiasi cereri)
+-- •utilizarea a cel puțin 2 funcții pe șiruri de caractere
+-- •utilizarea a cel puțin 1 bloc de cerere(clauza WITH)
+-- •ordonari
+
+
+with tab as(
+select s.nume_sectiune, sum(a.salariu) suma, count(tur.tura_id) nr_ture
+from angajati a, sectiuni_lucru s, ture_angajati tur
+where a.sectiune_id=s.sectiune_id and length(s.nume_sectiune)<=13 and tur.tura_id=a.tura_id
+group by s.nume_sectiune)
+    
+select s.nume_sectiune,sum(a.salariu) suma_totala, count(tur.tura_id) nr_ture_totale
+from angajati a, sectiuni_lucru s, ture_angajati tur 
+where a.sectiune_id=s.sectiune_id and tur.tura_id=a.tura_id
+group by s.nume_sectiune
+having sum(a.salariu)>(select min(t.suma)
+    				   from tab t) and count(tur.tura_id)> (select min(t.nr_ture) from tab t)
+order by suma_totala;
+
+
+
+-- Ex3: Sa se afiseze numele, prenumele, telefonul si email-ul clientilor ce au domeniul yahoo. Pentru clientii ce nu au specificat prenumele, sa se inlocuiasca cu  „anonim”, iar pentru cei ce nu au specificat numarul de telefon, sa se inlocuiasca cu „necunoscut”. Sa se ordoneze dupa nume.
+
+-- •subcereri nesincronizate în clauza FROM
+-- •ordonări si utilizarea funcțiilor NVL și DECODE (in cadrul aceleiasi cereri)
+
+select nume_client, prenume, decode(telefon, NULL, 'necunoscut',telefon) telefon, email
+from (select nume_client,nvl(prenume_client,'anonim') prenume,telefon, email
+    	from clienti
+    	where lower(email) like '%@yahoo%') aux
+order by 1;
+
+
+
+
+-- Ex4: Sa se afiseze codul clientului, numele snack-ului cumparat si un mesaj corespunzator, comparand pe cazuri diferenta dintre data curenta si data tranzactiei cu 10. Ordonati dupa prima coloana.
+
+
+-- •utilizarea a cel puțin 2 funcții pe date calendaristice,  a cel puțin unei expresii CASE
+
+
+select c.client_id, s.nume_snack, t.data, case 
+                                            when trunc(sysdate)-t.data>10 then 'Tranzactie de peste 10 zile'
+    			    when trunc(sysdate)-t.data=10 then 'Tranzactie a fost facuta acum 10 zile'
+                                        else 'Tranzactie recenta'
+                                        end diferenta
+from tranzactii t, clienti c, snacks_uri s
+where c.client_id=t.client_id and s.snack_id=t.snack_id
+order by 1;
+
+
+
+
+-- Ex5: Sa se afiseze datele si datele ce vor fi peste 3 luni, de la data tranzactiilor in care clientii au cumparat una dintre bauturile urmatoare: Pepsi, Fanta, Fuze Tea.
+
+-- •utilizarea a cel puțin 2 funcții pe date calendaristice
+-- •utilizarea a cel puțin 2 funcții pe șiruri de caractere
+
+select t.data,add_months(t.data,3) "Peste 3 luni"
+from tranzactii t, clienti c, snacks_uri s
+where c.client_id=t.client_id and s.snack_id=t.snack_id and upper(s.nume_snack) in ('PEPSI', 'FANTA', 'FUZE TEA'); 
+
+
+
+
+
+
+
+
+
+--13
+--Ex1: Sa se stearga angajatii care au salariul mai mic de 1700 RON si prima litera din numele lor este „c”.
+
+delete from angajati
+where angajat_id in (select angajat_id
+    				from angajati where salariu<1700 and lower(nume_angajat) like 'c%');
+
+
+--Ex2: Sa se dubleze pretul celor mai ieftine snacks-uri.
+
+update snacks_uri
+set pret=pret*2
+where pret=(select min(pret)
+    		from snacks_uri);
+
+
+--Ex3: Sa se mareasca cu o ora in plus, durata turelor angajatiilor ce au salariul maxim si durata turei nu este 8.
+
+update ture_angajati
+set durata=durata+1
+where tura_id in (select t.tura_id
+    			from ture_angajati t, angajati a
+    			where a.tura_id=t.tura_id and a.salariu=(select max(salariu)
+    								 from angajati)) and durata<8;
+
+
+
+
+--15
+--Outer join
+
+select distinct f.nume_film, s.sala_id, c.client_id, t.transmitere_id, tr.client_id, sn.nume_snack
+from filme f, sali_cinematograf s, clienti c, transmiteri t, rezervari r, tranzactii tr, snacks_uri sn
+where f.film_id=t.film_id(+) and 
+      s.sala_id=t.sala_id(+) and 
+      t.transmitere_id=r.transmitere_id and
+      c.client_id=r.client_id and
+      c.client_id=tr.client_id(+) and
+      sn.snack_id=tr.snack_id(+)
+order by 6;
+
+
+
+
+
+
+
+select c.client_id, s.nume_snack, case 
+    when(trunc(sysdate)-t.data<10) then 'Recenta' 
+    when (trunc(sysdate)-t.data=10) then 'De 10 zile' 
+    else 'Veche' 
+    end diferenta, s.pret "Cel mai scump"
+from clienti c, snacks_uri s, tranzactii t
+where t.client_id=c.client_id and s.snack_id=t.snack_id and
+    s.pret=(select max(sn.pret)
+    from snacks_uri sn, clienti cl, tranzactii tr
+    where sn.snack_id=tr.snack_id and cl.client_id=tr.client_id and cl.client_id=c.client_id)
+order by 1;
+
+
+
+
+select distinct c.client_id, s.nume_snack, case 
+    when(trunc(sysdate)-t.data<10) then 'Recenta' 
+    when (trunc(sysdate)-t.data=10) then 'De 10 zile' 
+    else 'Veche' 
+    end diferenta, 
+    (select max(sn.pret)
+    from snacks_uri sn, clienti cl, tranzactii tr
+    where sn.snack_id=tr.snack_id and cl.client_id=tr.client_id and cl.client_id=c.client_id) "Cel mai scump"
+from clienti c, snacks_uri s, tranzactii t
+where t.client_id=c.client_id and s.snack_id=t.snack_id
+order by 1;
+
+
+
