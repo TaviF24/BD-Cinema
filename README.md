@@ -14,5 +14,6 @@ It contains 3 files:
 
 ## What I used
 - MacOS with M1
+- Oracle Database 19c
 - [Live Sql](https://livesql.oracle.com/apex/f?p=590:1000), but you can use [SQL Developer](https://www.oracle.com/database/sqldeveloper/technologies/download/) as well
  
