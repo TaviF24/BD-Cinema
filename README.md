@@ -10,7 +10,7 @@ It contains 3 files:
 - The [133_Farcasi_George_Octavian-proiect.docx](133_Farcasi_George_Octavian-proiect.docx) file has a presentation made in Microsoft Word which has more details about the tables and how I created them.
 
 >[!NOTE]
->All the commands from the files are in comments.
+>All the commands from the files are as comments.
 
 ## What I used
 - MacOS with M1
